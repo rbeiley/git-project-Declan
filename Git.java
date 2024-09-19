@@ -10,7 +10,7 @@ public class Git
         File objects = new File("git/objects");
         if (!objects.isDirectory())
             objects.mkdir();
-        File index = new File("git","index");
+        File index = new File("git/index");
         index.createNewFile();
     }
 }
