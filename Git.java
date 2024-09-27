@@ -4,12 +4,24 @@ import java.io.File;
 public class Git
 {
     public static void main(String[] args) throws IOException{
-        File git = new File("git");
-        if (!git.isDirectory())
-            git.mkdir();
+        mkGit();
+        mkObjects();
+        mkIndex();
+    }
+    public static void mkObjects ()
+    {
         File objects = new File("git/objects");
         if (!objects.isDirectory())
             objects.mkdir();
+    }
+    public static void mkGit ()
+    {
+        File git = new File("git");
+        if (!git.isDirectory())
+            git.mkdir();
+    }
+    public static void mkIndex ()
+    {
         File index = new File("git/index");
         index.createNewFile();
     }
