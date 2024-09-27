@@ -59,14 +59,38 @@ public class BlobTester {
                 System.out.println("Successful Blob Test");
             else
                 System.out.println("Unsuccessful Blob Test");
+            reset();
         } catch (Exception e) {
             System.out.println("File Not Found");
         }
     }
 
+    //Deletes all objects in git objects folder and clears index data
     public static void reset() {
-        File index = new File("/git/index");
-        index.delete();
-        FileUtils.deleteDirectory("git/objects");
+        try {
+            // reset index
+            File index = new File("git/index");
+            index.delete();
+            index.createNewFile();
+
+            // reset objects
+            File objects = new File("git/objects");
+            resetRecur(objects);
+            objects.mkdir();
+        } catch (Exception e) {
+            System.out.println("File Could Not Be Created : " + e);
+        }
+    }
+
+    private static void resetRecur (File file)
+    {
+        if (file.isDirectory())
+        {
+            String [] ls = file.list();
+            for (String fileName : ls) {
+                resetRecur(new File(file.getPath() + "/" + fileName));
+            }
+        }
+        file.delete();
     }
 }

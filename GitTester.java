@@ -4,6 +4,7 @@ public class GitTester
     public static void main(String[] args) {
         deleteGit();
     }
+    //Checks git to make sure basic infrastructure is intact
     public static boolean gitCheck ()
     {      
         File index = new File ("git/index");
@@ -13,21 +14,23 @@ public class GitTester
     }
     public static boolean deleteGit ()
     {
-        if (gitCheck())
-        {
-            File index = new File ("git/index");
-            File gitDir = new File ("git");
-            File objectsDir = new File ("git/objects");
-            index.delete();
-            objectsDir.delete();
-            gitDir.delete();
-            System.out.println("Deleting git");
+        try {
+            resetRecur(new File("git"));
             return true;
-        }
-        else
-        {
-            System.out.println("check failed");
+        } catch (Exception e) {
+            System.out.println("Failed to Reset : " + e);
             return false;
         }
+    }
+    private static void resetRecur (File file)
+    {
+        if (file.isDirectory())
+        {
+            String [] ls = file.list();
+            for (String fileName : ls) {
+                resetRecur(new File(file.getPath() + "/" + fileName));
+            }
+        }
+        file.delete();
     }
 }
