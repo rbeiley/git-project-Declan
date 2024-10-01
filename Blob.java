@@ -36,7 +36,7 @@ public class Blob
         File blob = new File(path);
         if (!blob.exists())
             throw new IOException("Path doesn't exist");
-        File tree = new File ("git" + File.separator + "objects" + File.separator + Sha1.encryptThisString(name));
+        File tree = new File ("git" + File.separator + "objects" + File.separator + Sha1.encryptThisString(getContents(new File(name))));
         if (blob.isDirectory()) {
             File[] files = blob.listFiles();
             String treeIndex = "";
