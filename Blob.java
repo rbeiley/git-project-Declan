@@ -4,6 +4,14 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.zip.ZipEntry;
+import java.io.FileOutputStream;
+import java.util.zip.ZipEntry;
+import java.io.ZipOutputStream;
+import java.util.zip.ZipOutputStream;
+import java.io.FileNotFoundException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 public class Blob
 {
     public static boolean compress = true;
@@ -13,7 +21,6 @@ public class Blob
             blobType += "blob ";
         else
             blobType += "tree ";
-        
         //Make compressed blob file or make uncompressed blob file
         String sha1;
         File hashFile;
@@ -106,17 +113,22 @@ public class Blob
     public static File zipContents(String dirPath, String filePath) {
         try {
             File file = new File(filePath);
-            String placeHold = "";
-            FileOutputStream fos = new FileOutputStream(placeHold);
+            String tempFileName = file.getName() + ".zip";
+            FileOutputStream fos = new FileOutputStream(tempFileName);
             ZipOutputStream zos = new ZipOutputStream(fos);
  
-            zos.putNextEntry(new ZipEntry(file.getName()));
+            ZipEntry enter = new ZipEntry(file.getName());
+            zos.putNextEntry(enter);
  
             byte[] bytes = Files.readAllBytes(Paths.get(filePath));
             zos.write(bytes, 0, bytes.length);
+            System.out.println(enter.toString());
             zos.closeEntry();
             zos.close();
-            return new File(dirPath + File.separator + Sha1.encryptThisString(getContents(placeHold)));
+
+            File renamedFile = new File(tempFileName);
+            renamedFile.renameTo(new File (dirPath + File.separator + Sha1.encryptThisString(enter.toString())));
+            return renamedFile;
         } catch (FileNotFoundException ex) {
             System.err.format("The file %s does not exist", filePath);
         } catch (IOException ex) {
