@@ -6,41 +6,37 @@ import java.io.FileWriter;
 import java.io.IOException;
 public class Blob
 {
-    public boolean compress = true;
-    public Blob (File file) throws IOException
-    {
-        String code = getFileData(file);
-        String hash = Sha1.encryptThisString(code);
-        if (compress)
-        {
-            File blob = ZipFile.zipFile(file.getName());
-            blob.renameTo(new File("git/objects/" + hash));
-        }
-        else
-        {
-            File blob = new File("git/objects/" + hash);
-            blob.createNewFile();
-            FileWriter writeToBlob = new FileWriter("git/objects/" + hash);
-            writeToBlob.append(code);
-            writeToBlob.close();
-        }
-        FileWriter writeToIndex = new FileWriter("git/index", true);
-        writeToIndex.append(hash + ' ' + file.getName() + '\n');
-        writeToIndex.close();
+    public static boolean compress = true;
     public static void makeBlob(File file) throws IOException {
         String blobType = "";
         if (file.isFile())
             blobType += "blob ";
         else
             blobType += "tree ";
-        Boolean newBlob = true;
-        String sha1 = Sha1.encryptThisString(getContents(file));
+        
+        //Make compressed blob file or make uncompressed blob file
+        String sha1;
+        File hashFile;
+        if (compress)
+        {
+            hashFile = zipContents("git/objects", file.getPath());
+            sha1 = hashFile.getName();
+        }
+        else
+        {
+            sha1 = Sha1.encryptThisString(getContents(file));
+            
+            //Create Blob in objects directory
+            hashFile = new File("git" + File.separator + "objects" + File.separator + sha1);
+            hashFile.createNewFile();
+            copyFile(file, hashFile);
+        }
+        
+        //Prevent Duplicate Index Entries + Enter new Entries into index
         String path = file.getPath();
         String indexOutput = blobType + sha1 + " " + path;
-        File hashFile = new File("git" + File.separator + "objects" + File.separator + sha1);
-        hashFile.createNewFile();
-        copyFile(file, hashFile);
         BufferedReader reader = new BufferedReader(new FileReader("git" + File.separator + "index"));
+        Boolean newBlob = true;
         while (reader.ready()) {
             if (reader.readLine().equals(indexOutput))
                 newBlob = false;
@@ -103,6 +99,29 @@ public class Blob
         while (reader.ready()) {
             contents += reader.readLine();
         }
+        reader.close();
         return contents;
     }
+    //@param dirPath path to directory where new zipped file will go
+    public static File zipContents(String dirPath, String filePath) {
+        try {
+            File file = new File(filePath);
+            String placeHold = "";
+            FileOutputStream fos = new FileOutputStream(placeHold);
+            ZipOutputStream zos = new ZipOutputStream(fos);
+ 
+            zos.putNextEntry(new ZipEntry(file.getName()));
+ 
+            byte[] bytes = Files.readAllBytes(Paths.get(filePath));
+            zos.write(bytes, 0, bytes.length);
+            zos.closeEntry();
+            zos.close();
+            return new File(dirPath + File.separator + Sha1.encryptThisString(getContents(placeHold)));
+        } catch (FileNotFoundException ex) {
+            System.err.format("The file %s does not exist", filePath);
+        } catch (IOException ex) {
+            System.err.println("I/O error: " + ex);
+        }
+        return null;
+    } 
 }
