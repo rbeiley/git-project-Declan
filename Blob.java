@@ -25,7 +25,7 @@ public class Blob
                 newBlob = false;
         }
         reader.close();
-        if (newBlob) {
+        if (newBlob && blobType.equals("blob ")) {
             BufferedWriter writeIndex = new BufferedWriter(new FileWriter("git" + File.separator + "index", true));                writeIndex.write(indexOutput);
             writeIndex.newLine();
             writeIndex.close();
@@ -36,7 +36,7 @@ public class Blob
         File blob = new File(path);
         if (!blob.exists())
             throw new IOException("Path doesn't exist");
-        File tree = new File ("git" + File.separator + "objects" + File.separator + name);
+        File tree = new File ("git" + File.separator + "objects" + File.separator + Sha1.encryptThisString(name));
         if (blob.isDirectory()) {
             File[] files = blob.listFiles();
             String treeIndex = "";
