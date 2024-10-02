@@ -14,7 +14,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 public class Blob
 {
-    public static boolean compress = true;
+    //compress boolean is for zip compression which uses zipContents method to compress files
+    public static boolean compress = false;
+    //Makes blob and puts the string into the index
     public static String makeBlob(File file) throws IOException {
         String blobType = "";
         if (file.isFile())
@@ -22,12 +24,16 @@ public class Blob
         else
             blobType += "tree ";
         //Make compressed blob file or make uncompressed blob file
-        String sha1;
+        String sha1 = "";
         File hashFile;
         if (compress)
         {
-            hashFile = zipContents("git/objects", file.getPath());
-            sha1 = hashFile.getName();
+            try {
+                hashFile = zipContents("git/objects", file);
+                sha1 = hashFile.getName();
+            } catch (Exception e) {
+                System.out.println(e);
+            }
         }
         else
         {
@@ -58,6 +64,7 @@ public class Blob
         return sha1;
     }
 
+    //adds tree recursively using make blob method
     public static String addTree(String path, String name) throws IOException{
         File blob = new File(path);
         if (!blob.exists())
@@ -82,10 +89,24 @@ public class Blob
         if (treeData.equals(""))
             treeData += getContents(blob);
 
-        File tree = new File ("git" + File.separator + "objects" + File.separator + Sha1.encryptThisString(treeData));
-        BufferedWriter writer = new BufferedWriter(new FileWriter(tree));
-        writer.write(treeData);
-        writer.close();
+        File tree;
+        if (compress)
+        {
+            File tempFile = new File ("tempTreeFile.txt");
+            BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile));
+            writer.write(treeData);
+            writer.close();
+            tree = zipContents("git/objects", tempFile);
+            tempFile.delete();
+        }
+        else
+        {
+            tree = new File ("git" + File.separator + "objects" + File.separator + Sha1.encryptThisString(treeData));
+            BufferedWriter writer = new BufferedWriter(new FileWriter(tree));
+            writer.write(treeData);
+            writer.close();
+        }
+        
         String toIndex = "tree " + Sha1.encryptThisString(tree.getName()) + " " + path + "\n";
         BufferedWriter newWriter = new BufferedWriter(new FileWriter(new File ("git" + File.separator + "index"), true));
         newWriter.write(toIndex);
@@ -94,6 +115,7 @@ public class Blob
         return tree.getName();
     }
 
+    
     public static void copyFile(File input, File output) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(input));
         String contents = "";
@@ -116,30 +138,31 @@ public class Blob
         return contents;
     }
     //@param dirPath path to directory where new zipped file will go
-    public static File zipContents(String dirPath, String filePath) {
-        try {
-            File file = new File(filePath);
-            String tempFileName = file.getName() + ".zip";
-            FileOutputStream fos = new FileOutputStream(tempFileName);
-            ZipOutputStream zos = new ZipOutputStream(fos);
- 
-            ZipEntry enter = new ZipEntry(file.getName());
-            zos.putNextEntry(enter);
- 
-            byte[] bytes = Files.readAllBytes(Paths.get(filePath));
-            zos.write(bytes, 0, bytes.length);
-            zos.closeEntry();
-            zos.close();
-
-            File renamedFile = new File(tempFileName);
-            File namedFile = new File (dirPath + File.separator + Sha1.encryptThisString(enter.toString()));
-            System.out.println(renamedFile.renameTo(namedFile));
-            return renamedFile;
-        } catch (FileNotFoundException ex) {
-            System.err.format("The file %s does not exist", filePath);
-        } catch (IOException ex) {
-            System.err.println("I/O error: " + ex);
+    public static File zipContents(String newFilePath, File ogFile) throws IOException {
+        File tempFile = new File("zipTesterFileTEMP.txt");
+        StringBuilder sb = new StringBuilder();
+        FileReader reader = new FileReader(ogFile);
+        while (reader.ready())
+        {
+            sb.append(reader.read());
         }
-        return null;
+        
+        ZipOutputStream out = new ZipOutputStream(new FileOutputStream(tempFile));
+        ZipEntry e = new ZipEntry("tester.txt");
+        out.putNextEntry(e);
+
+        byte[] data = sb.toString().getBytes();
+        out.write(data, 0, data.length);
+        out.closeEntry();
+
+        out.close();
+
+        String sha1 = Sha1.encryptThisString(sb.toString());
+        File blob = new File (newFilePath + File.separator + sha1);
+        FileOutputStream fos = new FileOutputStream(blob);
+        Files.copy(tempFile.toPath(), fos);
+        
+        tempFile.delete();
+        return blob;
     } 
 }

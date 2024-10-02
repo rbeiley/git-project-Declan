@@ -23,7 +23,6 @@ public class ZipTester {
             sb.append(reader.read());
         }
         
-
         ZipOutputStream out = new ZipOutputStream(new FileOutputStream(tempFile));
         ZipEntry e = new ZipEntry("tester.txt");
         out.putNextEntry(e);
@@ -38,6 +37,7 @@ public class ZipTester {
         File blob = new File (newFilePath + File.separator + sha1);
         FileOutputStream fos = new FileOutputStream(blob);
         Files.copy(tempFile.toPath(), fos);
+        tempFile.delete();
         return sha1;
     }
 }
