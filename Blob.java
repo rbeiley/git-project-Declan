@@ -122,7 +122,6 @@ public class Blob
  
             byte[] bytes = Files.readAllBytes(Paths.get(filePath));
             zos.write(bytes, 0, bytes.length);
-            System.out.println(enter.toString());
             zos.closeEntry();
             zos.close();
 
