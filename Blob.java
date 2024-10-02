@@ -15,7 +15,7 @@ import java.nio.file.Paths;
 public class Blob
 {
     public static boolean compress = true;
-    public static void makeBlob(File file) throws IOException {
+    public static String makeBlob(File file) throws IOException {
         String blobType = "";
         if (file.isFile())
             blobType += "blob ";
@@ -50,42 +50,48 @@ public class Blob
         }
         reader.close();
         if (newBlob && blobType.equals("blob ")) {
-            BufferedWriter writeIndex = new BufferedWriter(new FileWriter("git" + File.separator + "index", true));                writeIndex.write(indexOutput);
+            BufferedWriter writeIndex = new BufferedWriter(new FileWriter("git" + File.separator + "index", true));                
+            writeIndex.write(indexOutput);
             writeIndex.newLine();
             writeIndex.close();
         }
+        return sha1;
     }
 
     public static String addTree(String path, String name) throws IOException{
         File blob = new File(path);
         if (!blob.exists())
             throw new IOException("Path doesn't exist");
-        File tree = new File ("git" + File.separator + "objects" + File.separator + Sha1.encryptThisString(getContents(new File(name))));
+        String treeData = "";
         if (blob.isDirectory()) {
             File[] files = blob.listFiles();
-            String treeIndex = "";
             for (int i = 0; i < files.length; i++) {
                 File file = files[i];
                 String hash = "";
                 if (!file.isDirectory()) {
-                    hash = Sha1.encryptThisString(tree.getName());
-                    treeIndex += "blob " + hash + " " + file.getName() + "\n";
-                    makeBlob(file);
+                    hash = makeBlob(file);
+                    treeData += "blob " + hash + " " + file.getPath() + "\n";
                 }
                 else {
                     hash = addTree(file.getPath(), file.getName());
-                    treeIndex += "tree " + hash + " " + file.getName() + "\n";
+                    treeData += "tree " + hash + " " + file.getPath() + "\n";
                 }
             }
-            BufferedWriter writer = new BufferedWriter(new FileWriter(tree));
-            writer.write(treeIndex);
-            writer.close();
-            String toIndex = "tree " + Sha1.encryptThisString(tree.getName()) + " " + path + "\n";
-            BufferedWriter newWriter = new BufferedWriter(new FileWriter(new File ("git" + File.separator + "index"), true));
-            newWriter.write(toIndex);
-            newWriter.close();
         }
-        return Sha1.encryptThisString(tree.getName());
+        
+        if (treeData.equals(""))
+            treeData += getContents(blob);
+
+        File tree = new File ("git" + File.separator + "objects" + File.separator + Sha1.encryptThisString(treeData));
+        BufferedWriter writer = new BufferedWriter(new FileWriter(tree));
+        writer.write(treeData);
+        writer.close();
+        String toIndex = "tree " + Sha1.encryptThisString(tree.getName()) + " " + path + "\n";
+        BufferedWriter newWriter = new BufferedWriter(new FileWriter(new File ("git" + File.separator + "index"), true));
+        newWriter.write(toIndex);
+        newWriter.close();
+
+        return tree.getName();
     }
 
     public static void copyFile(File input, File output) throws IOException {
@@ -126,7 +132,8 @@ public class Blob
             zos.close();
 
             File renamedFile = new File(tempFileName);
-            renamedFile.renameTo(new File (dirPath + File.separator + Sha1.encryptThisString(enter.toString())));
+            File namedFile = new File (dirPath + File.separator + Sha1.encryptThisString(enter.toString()));
+            System.out.println(renamedFile.renameTo(namedFile));
             return renamedFile;
         } catch (FileNotFoundException ex) {
             System.err.format("The file %s does not exist", filePath);
