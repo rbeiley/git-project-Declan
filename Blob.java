@@ -12,6 +12,7 @@ import java.util.zip.ZipOutputStream;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 public class Blob
 {
     //compress boolean is for zip compression which uses zipContents method to compress files
@@ -65,6 +66,8 @@ public class Blob
     }
 
     //adds tree recursively using make blob method
+    //@param path to object
+    //@param name of object
     public static String addTree(String path, String name) throws IOException{
         File blob = new File(path);
         if (!blob.exists())
@@ -107,15 +110,25 @@ public class Blob
             writer.close();
         }
         
-        String toIndex = "tree " + Sha1.encryptThisString(tree.getName()) + " " + path + "\n";
-        BufferedWriter newWriter = new BufferedWriter(new FileWriter(new File ("git" + File.separator + "index"), true));
-        newWriter.write(toIndex);
-        newWriter.close();
-
+        //Ensures no duplicates are being entered into index and adds tree entry
+        String hash = Sha1.encryptThisString(treeData);
+        String toIndex = "tree " + hash + " " + path + "\n";
+        ArrayList<String> entries = Git.getEntries();
+        String hashInEntries = Git.findHashInEntries(entries, path);
+        if (hashInEntries.equals(""))
+        {
+            FileWriter newWriter = new FileWriter(new File ("git" + File.separator + "index"), true);
+            newWriter.write(toIndex);
+            newWriter.close();
+        }
+        else if (!hashInEntries.equals(hash))
+        {
+            Git.setHashInEntry(hash, path);
+        }
         return tree.getName();
     }
 
-    
+
     public static void copyFile(File input, File output) throws IOException {
         BufferedReader reader = new BufferedReader(new FileReader(input));
         String contents = "";
