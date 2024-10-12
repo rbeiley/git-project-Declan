@@ -8,17 +8,19 @@ public class GitTester
         //gitCheck();
         // deleteGit();
         try {
-            Git.initRepo();
-            createTestRoot();
+            // Git.initRepo();
+            // createTestRoot();
             Git newGit = new Git();
-            newGit.commit("D", "HI MR LOPEZ");
-            newGit.commit("D Again", "COMMIT NUMBER DOS");
-            File file3 = new File ("root/file3.txt");
-            file3.createNewFile();
-            FileWriter fw = new FileWriter(file3);
-            fw.write("FILE THREE");
-            fw.close();
-            newGit.stage(file3.getPath());
+            // newGit.commit("D", "HI MR LOPEZ");
+            // File file3 = new File ("root/file3.txt");
+            // file3.createNewFile();
+            // FileWriter fw = new FileWriter(file3);
+            // fw.write("FILE THREE");
+            // fw.close();
+            // newGit.stage(file3.getPath());
+            // newGit.commit("D Again", "Added File 3");
+
+            newGit.checkout("313d94f68f89ee6dedeac3c6cb2401e146857803");
         } catch (Exception e) {
             System.out.println(e);
         }

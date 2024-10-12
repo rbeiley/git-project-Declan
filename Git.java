@@ -1,14 +1,17 @@
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.Buffer;
+import java.nio.file.Files;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
+import java.nio.file.Paths;
 
 public class Git implements GitInterface 
 {
@@ -86,7 +89,7 @@ public class Git implements GitInterface
         }
     }
     
-    public void checkout(String commitHash)
+    public void checkout(String commitHash) throws IOException
     {
         File commitFile = new File ("git/objects/" + commitHash);
         if (!commitFile.exists())
@@ -94,20 +97,44 @@ public class Git implements GitInterface
         BufferedReader bf = new BufferedReader(new FileReader(commitFile));
 
         String treeHash;
-        while (bf.ready())
-        {
-            String bfLine = bf.readLine();
-            if (bfLine.indexOf("parent:"))
-                treeHash = bfLine.substring(bfLine.indexOf(' '));      
-        }
+        String treeLine = bf.readLine();
         bf.close();
+        if (treeLine.indexOf("tree:\t")>-1)
+            treeHash = treeLine.substring(treeLine.indexOf('\t')+1);
+        else
+            throw new IOException("improper commit format");
 
-        construct(new File("git/objects/" + treeHash));
+        ArrayList<String> newIndexList = construct(new File("git/objects/" + treeHash),root.getPath());
+        setEntries(newIndexList);
     }
     //recursively constructs Root and components from a tree file and updates index
-    private void construct (File treeFile)
+    //@param pathToRoot path the the directory that will hold the root directory
+    private ArrayList<String> construct (File treeFile, String pathToRoot) throws IOException
     {
         if (!treeFile.exists())
+            throw new FileNotFoundException("treeFile not found");
+        ArrayList<String> newIndex = new ArrayList<String>();
+        File newFile = new File(pathToRoot);
+        newFile.mkdir();
+        ArrayList<String> treeEntries = convertToArray(treeFile);
+        for (String string : treeEntries) {
+            String path = string.substring(string.indexOf(' ', 6) + 1);
+            if (string.substring(0,4).equals("blob"))
+            {
+                Files.copy(Paths.get(path), new FileOutputStream(path));
+                newIndex.add("blob " + treeFile.getName() + ' ' + path);
+            }
+            else
+            {
+                String hash = string.substring(5, string.indexOf(' ',6));
+                File inputFile = new File("git/objects/" + hash);
+                if (!inputFile.exists())
+                    throw new FileNotFoundException("inputFile not found");
+                newIndex.addAll(construct(inputFile, path));
+                newIndex.add("tree " + treeFile.getName() + ' ' + pathToRoot);
+            }
+        }
+        return newIndex;
     }
 
     //Converts File to array of entries
@@ -135,10 +162,10 @@ public class Git implements GitInterface
         return sb.toString();
     }
     //Finds the hash of a file given a path; Returns an empty string if non exists
-    //@param filePath the file path that would appear in the log
-    public static String findHashInEntries (ArrayList<String> entries, String filePath)
+    //@param filePath the file path that would appear in the log for the hashed file
+    public static String findHashInEntries (ArrayList<String> list, String filePath)
     {
-        for (String string : entries) {
+        for (String string : list) {
             int indexOfFilePath = string.indexOf(filePath);
             if (indexOfFilePath>0 && indexOfFilePath + filePath.length() == string.length())
             {
@@ -150,7 +177,12 @@ public class Git implements GitInterface
     //set entries list with a newentries list
     public static void setEntries (ArrayList<String> newEntries)
     {
-        entries = newEntries;
+        try {
+            entries = newEntries;
+            updateIndex();
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
     }
     //getEntries
     public static ArrayList<String> getEntries ()

@@ -27,5 +27,5 @@ public interface GitInterface {
      *
      * @param commitHash The SHA1 hash of the commit to check out.
      */
-    void checkout(String commitHash);
+    void checkout(String commitHash) throws IOException;
 }
