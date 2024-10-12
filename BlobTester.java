@@ -25,22 +25,10 @@ public class BlobTester {
 
             // reset objects
             File objects = new File("git/objects");
-            resetRecur(objects);
+            Git.resetRecur(objects);
             objects.mkdir();
         } catch (Exception e) {
             System.out.println("File Could Not Be Created : " + e);
         }
-    }
-
-    private static void resetRecur (File file)
-    {
-        if (file.isDirectory())
-        {
-            String [] ls = file.list();
-            for (String fileName : ls) {
-                resetRecur(new File(file.getPath() + "/" + fileName));
-            }
-        }
-        file.delete();
     }
 }

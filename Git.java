@@ -104,11 +104,12 @@ public class Git implements GitInterface
         else
             throw new IOException("improper commit format");
 
+        resetRecur(root);
         ArrayList<String> newIndexList = construct(new File("git/objects/" + treeHash),root.getPath());
         setEntries(newIndexList);
     }
     //recursively constructs Root and components from a tree file and updates index
-    //@param pathToRoot path the the directory that will hold the root directory
+    //@param pathToRoot path the root directory that will hold the root directory
     private ArrayList<String> construct (File treeFile, String pathToRoot) throws IOException
     {
         if (!treeFile.exists())
@@ -116,22 +117,22 @@ public class Git implements GitInterface
         ArrayList<String> newIndex = new ArrayList<String>();
         File newFile = new File(pathToRoot);
         newFile.mkdir();
+        newIndex.add("tree " + treeFile.getName() + ' ' + pathToRoot);
         ArrayList<String> treeEntries = convertToArray(treeFile);
         for (String string : treeEntries) {
             String path = string.substring(string.indexOf(' ', 6) + 1);
+            String hash = string.substring(5, string.indexOf(' ',6));
             if (string.substring(0,4).equals("blob"))
             {
-                Files.copy(Paths.get(path), new FileOutputStream(path));
+                Files.copy(new File ("git/objects/" + hash).toPath(), new FileOutputStream(new File(path)));
                 newIndex.add("blob " + treeFile.getName() + ' ' + path);
             }
             else
             {
-                String hash = string.substring(5, string.indexOf(' ',6));
                 File inputFile = new File("git/objects/" + hash);
                 if (!inputFile.exists())
                     throw new FileNotFoundException("inputFile not found");
                 newIndex.addAll(construct(inputFile, path));
-                newIndex.add("tree " + treeFile.getName() + ' ' + pathToRoot);
             }
         }
         return newIndex;
@@ -227,5 +228,16 @@ public class Git implements GitInterface
         else
             entries.add(entryString);
         updateIndex();
+    }
+    public static void resetRecur (File file)
+    {
+        if (file.isDirectory())
+        {
+            String [] ls = file.list();
+            for (String fileName : ls) {
+                resetRecur(new File(file.getPath() + "/" + fileName));
+            }
+        }
+        file.delete();
     }
 }

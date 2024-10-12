@@ -6,11 +6,13 @@ public class GitTester
 {
     public static void main(String[] args) {
         //gitCheck();
-        // deleteGit();
+        //deleteGit();
         try {
+            Git newGit = new Git();
+            
+            // Below, tests commit and staging functions 
             // Git.initRepo();
             // createTestRoot();
-            Git newGit = new Git();
             // newGit.commit("D", "HI MR LOPEZ");
             // File file3 = new File ("root/file3.txt");
             // file3.createNewFile();
@@ -36,23 +38,12 @@ public class GitTester
     public static boolean deleteGit ()
     {
         try {
-            resetRecur(new File("git"));
+            Git.resetRecur(new File("git"));
             return true;
         } catch (Exception e) {
             System.out.println("Failed to Reset : " + e);
             return false;
         }
-    }
-    private static void resetRecur (File file)
-    {
-        if (file.isDirectory())
-        {
-            String [] ls = file.list();
-            for (String fileName : ls) {
-                resetRecur(new File(file.getPath() + "/" + fileName));
-            }
-        }
-        file.delete();
     }
     public static void createTestRoot () throws IOException
     {
