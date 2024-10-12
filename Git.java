@@ -10,7 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
 
-public class Git
+public class Git implements GitInterface 
 {
     private static File root = new File("root");
     private static ArrayList<String> entries = new ArrayList<String>();
@@ -28,47 +28,52 @@ public class Git
         
         entries = convertToArray(index);
     }
-    public static String commit (String author, String message) throws IOException
+    public String commit (String author, String message) throws IOException
     {
-        //tree: (ensure that a root exists as a blob already)
-        String rootSha = findHashInEntries(entries, root.getPath());
-        if (rootSha.equals(""))
-        {
-            rootSha = Blob.addTree(root.getPath(), root.getName());
+        try {
+            //tree: (ensure that a root exists as a blob already)
+            String rootSha = findHashInEntries(entries, root.getPath());
+            if (rootSha.equals(""))
+            {
+                rootSha = Blob.addTree(root.getPath(), root.getName());
+            }
+            
+            StringBuilder sb = new StringBuilder("tree:\t"+rootSha+'\n');
+            
+            //parent:
+            File head = new File ("git/HEAD");
+            BufferedReader br = new BufferedReader(new FileReader(head));
+            sb.append("parent:\t"+br.readLine()+'\n');
+            br.close();
+
+            //author:
+            sb.append("author:\t" + author+'\n');
+
+            //time:
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");  
+            LocalDateTime now = LocalDateTime.now();
+            sb.append("time:\t"+dtf.format(now)+'\n');
+
+            //message:
+            sb.append("message:\t"+message);
+            
+            String sha = Sha1.encryptThisString(sb.toString());
+            File commitFile = new File ("git/objects/"+sha);
+            BufferedWriter bw = new BufferedWriter(new FileWriter(commitFile));
+            bw.write(sb.toString());
+            bw.close();
+            
+            FileWriter fwHead = new FileWriter(head);
+            fwHead.append(sha);
+            fwHead.close();
+            return sha;
+        } catch (Exception e) {
+            throw new IOException();
         }
-        
-        StringBuilder sb = new StringBuilder("tree:\t"+rootSha+'\n');
-        
-        //parent:
-        File head = new File ("git/HEAD");
-        BufferedReader br = new BufferedReader(new FileReader(head));
-        sb.append("parent:\t"+br.readLine()+'\n');
-        br.close();
-
-        //author:
-        sb.append("author:\t" + author+'\n');
-
-        //time:
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("MM/dd/yyyy");  
-        LocalDateTime now = LocalDateTime.now();
-        sb.append("time:\t"+dtf.format(now)+'\n');
-
-        //message:
-        sb.append("message:\t"+message);
-        
-        String sha = Sha1.encryptThisString(sb.toString());
-        File commitFile = new File ("git/objects/"+sha);
-        BufferedWriter bw = new BufferedWriter(new FileWriter(commitFile));
-        bw.write(sb.toString());
-        bw.close();
-        
-        FileWriter fwHead = new FileWriter(head);
-        fwHead.append(sha);
-        fwHead.close();
-        return sha;
     }
-    public static void stage (File stagingFile) throws IOException
+    public void stage (String filePath) throws IOException
     {
+        File stagingFile = new File(filePath);
         if (!stagingFile.exists())
             throw new FileNotFoundException("stagingFile does not exist");
         
@@ -80,6 +85,31 @@ public class Git
             Blob.addTree(root.getPath(), root.getName());
         }
     }
+    
+    public void checkout(String commitHash)
+    {
+        File commitFile = new File ("git/objects/" + commitHash);
+        if (!commitFile.exists())
+            throw new NullPointerException("commitHash points to nothing");
+        BufferedReader bf = new BufferedReader(new FileReader(commitFile));
+
+        String treeHash;
+        while (bf.ready())
+        {
+            String bfLine = bf.readLine();
+            if (bfLine.indexOf("parent:"))
+                treeHash = bfLine.substring(bfLine.indexOf(' '));      
+        }
+        bf.close();
+
+        construct(new File("git/objects/" + treeHash));
+    }
+    //recursively constructs Root and components from a tree file and updates index
+    private void construct (File treeFile)
+    {
+        if (!treeFile.exists())
+    }
+
     //Converts File to array of entries
     public static ArrayList<String> convertToArray (File file) throws IOException
     {
@@ -97,7 +127,10 @@ public class Git
     {
         StringBuilder sb = new StringBuilder();
         for (String string : list) {
-            sb.append(string);
+            if (string.indexOf('\n')>-1)
+                sb.append(string);
+            else
+                sb.append(string+'\n');
         }
         return sb.toString();
     }
@@ -106,9 +139,10 @@ public class Git
     public static String findHashInEntries (ArrayList<String> entries, String filePath)
     {
         for (String string : entries) {
-            if (string.indexOf(filePath)>0)
+            int indexOfFilePath = string.indexOf(filePath);
+            if (indexOfFilePath>0 && indexOfFilePath + filePath.length() == string.length())
             {
-                return string.substring(4, string.indexOf(' ',6));
+                return string.substring(5, string.indexOf(' ',6));
             }
         }
         return "";
@@ -117,10 +151,6 @@ public class Git
     public static void setEntries (ArrayList<String> newEntries)
     {
         entries = newEntries;
-        // File index = new File("git/index");
-        // if (!index.exists())
-        //     throw new FileNotFoundException("index not initialized");
-        // entries = convertToArray(index);
     }
     //getEntries
     public static ArrayList<String> getEntries ()
@@ -134,9 +164,10 @@ public class Git
         for (int i = 0; i < entries.size(); i++) {
             String entryString = entries.get(i);
             String oldHash = entryString.substring(5, entryString.indexOf(' ',6));
-            if (entryString.indexOf(filePath)>0 && !oldHash.equals(newHash))
+            int indexOfFilePath = entryString.indexOf(filePath);
+            if (indexOfFilePath>0 && !oldHash.equals(newHash) && indexOfFilePath + filePath.length()==entryString.length())
             {
-                entries.set(i, entryString.substring(0,5) + ' ' + newHash + ' ' +  filePath);
+                entries.set(i, entryString.substring(0,5) + newHash + ' ' +  filePath);
                 updateIndex();
                 return true;
             }
@@ -155,5 +186,14 @@ public class Git
         } catch (Exception e) {
             System.out.println("File Not Found : " + e);
         }
+    }
+    //Adds entry to entries list ensuring entry doesn't have a newline character
+    public static void addEntry (String entryString) throws IOException
+    {
+        if (entryString.indexOf('\n')>-1)
+            entries.add(entryString.substring(0, entryString.length()-1));
+        else
+            entries.add(entryString);
+        updateIndex();
     }
 }

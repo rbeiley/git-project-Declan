@@ -10,14 +10,15 @@ public class GitTester
         try {
             Git.initRepo();
             createTestRoot();
-            Git.commit("D", "HI MR LOPEZ");
-            Git.commit("D Again", "COMMIT NUMBER DOS");
+            Git newGit = new Git();
+            newGit.commit("D", "HI MR LOPEZ");
+            newGit.commit("D Again", "COMMIT NUMBER DOS");
             File file3 = new File ("root/file3.txt");
             file3.createNewFile();
             FileWriter fw = new FileWriter(file3);
             fw.write("FILE THREE");
             fw.close();
-            Git.stage(file3);
+            newGit.stage(file3.getPath());
         } catch (Exception e) {
             System.out.println(e);
         }

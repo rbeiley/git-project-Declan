@@ -57,10 +57,7 @@ public class Blob
         }
         reader.close();
         if (newBlob && blobType.equals("blob ")) {
-            BufferedWriter writeIndex = new BufferedWriter(new FileWriter("git" + File.separator + "index", true));                
-            writeIndex.write(indexOutput);
-            writeIndex.newLine();
-            writeIndex.close();
+            Git.addEntry(indexOutput);
         }
         return sha1;
     }
@@ -117,9 +114,7 @@ public class Blob
         String hashInEntries = Git.findHashInEntries(entries, path);
         if (hashInEntries.equals(""))
         {
-            FileWriter newWriter = new FileWriter(new File ("git" + File.separator + "index"), true);
-            newWriter.write(toIndex);
-            newWriter.close();
+            Git.addEntry(toIndex);
         }
         else if (!hashInEntries.equals(hash))
         {
