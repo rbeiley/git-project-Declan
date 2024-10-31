@@ -7,15 +7,15 @@ import java.io.FileReader;
 import java.io.BufferedReader;
 
 public class BlobTester {
-    public static void main (String [] args) throws Exception {
+    public static void main(String[] args) throws Exception {
         Git.initRepo();
 
-        GitTester.createTestRoot();
+        // GitTester.createTestRoot();
 
         Blob.addTree("root", "root");
     }
 
-    //Deletes all objects in git objects folder and clears index data
+    // Deletes all objects in git objects folder and clears index data
     public static void reset() {
         try {
             // reset index
