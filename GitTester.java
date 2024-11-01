@@ -20,6 +20,8 @@ public class GitTester {
             // Stage and commit initial files
             newGit.stage("root/file1.txt");
             newGit.stage("root/file2.txt");
+            newGit.stage("root/subdir/file3.txt");
+            newGit.stage("root/subdir/file4.txt");
             String initialCommitSha = newGit.commit("Author", "Initial commit");
             System.out.println("Initial commit SHA: " + initialCommitSha);
 
@@ -34,21 +36,37 @@ public class GitTester {
             System.out.println("\nContents of initial tree file:");
             printFileContents("git/objects/" + initialTreeHash);
 
-            // **First Test: Deleting a File**
-
-            // Delete file2.txt
-            File fileToDelete = new File("root/file2.txt");
-            if (fileToDelete.delete()) {
-                System.out.println("\nDeleted file: " + fileToDelete.getPath());
-            } else {
-                System.out.println("\nFailed to delete file: " + fileToDelete.getPath());
+            // **Print contents of root/subdir tree**
+            String initialSubdirTreeHash = getSubdirTreeHash("git/objects/" + initialTreeHash, "root/subdir");
+            if (initialSubdirTreeHash != null) {
+                System.out.println("\nContents of root/subdir tree file:");
+                printFileContents("git/objects/" + initialSubdirTreeHash);
             }
 
-            // Stage the deletion
+            // **First Test: Deleting Files**
+
+            // Delete file2.txt
+            File fileToDelete1 = new File("root/file2.txt");
+            if (fileToDelete1.delete()) {
+                System.out.println("\nDeleted file: " + fileToDelete1.getPath());
+            } else {
+                System.out.println("\nFailed to delete file: " + fileToDelete1.getPath());
+            }
+
+            // Delete file4.txt
+            File fileToDelete2 = new File("root/subdir/file4.txt");
+            if (fileToDelete2.delete()) {
+                System.out.println("Deleted file: " + fileToDelete2.getPath());
+            } else {
+                System.out.println("Failed to delete file: " + fileToDelete2.getPath());
+            }
+
+            // Stage the deletions
             newGit.stage("root/file2.txt");
+            newGit.stage("root/subdir/file4.txt");
 
             // Make a new commit after deletion
-            String deleteCommitSha = newGit.commit("Author", "Removed file2.txt");
+            String deleteCommitSha = newGit.commit("Author", "Removed file2.txt and file4.txt");
             System.out.println("\nCommit SHA after deletion: " + deleteCommitSha);
 
             // Print out the contents of the commit file after deletion
@@ -62,27 +80,45 @@ public class GitTester {
             System.out.println("\nContents of tree file after deletion:");
             printFileContents("git/objects/" + deleteTreeHash);
 
-            // **Second Test: Editing a File**
+            // **Print contents of root/subdir tree after deletion**
+            String deleteSubdirTreeHash = getSubdirTreeHash("git/objects/" + deleteTreeHash, "root/subdir");
+            if (deleteSubdirTreeHash != null) {
+                System.out.println("\nContents of root/subdir tree file after deletion:");
+                printFileContents("git/objects/" + deleteSubdirTreeHash);
+            }
 
-            // Read old contents of file1.txt
-            String oldContent = readFileContents("root/file1.txt");
+            // **Second Test: Editing Files**
+
+            // Read old contents of file1.txt and file3.txt
+            String oldContentFile1 = readFileContents("root/file1.txt");
+            String oldContentFile3 = readFileContents("root/subdir/file3.txt");
 
             // Edit file1.txt by adding a new word
-            File fileToEdit = new File("root/file1.txt");
-            BufferedWriter writer = new BufferedWriter(new FileWriter(fileToEdit, true)); // Append mode
-            String newWord = getRandomWord();
-            writer.write(" " + newWord);
-            writer.close();
-            System.out.println("\nEdited file: " + fileToEdit.getPath());
+            File fileToEdit1 = new File("root/file1.txt");
+            BufferedWriter writer1 = new BufferedWriter(new FileWriter(fileToEdit1, true)); // Append mode
+            String newWord1 = getRandomWord();
+            writer1.write(" " + newWord1);
+            writer1.close();
+            System.out.println("\nEdited file: " + fileToEdit1.getPath());
 
-            // Read new contents of file1.txt
-            String newContent = readFileContents("root/file1.txt");
+            // Edit file3.txt by adding a new word
+            File fileToEdit3 = new File("root/subdir/file3.txt");
+            BufferedWriter writer3 = new BufferedWriter(new FileWriter(fileToEdit3, true)); // Append mode
+            String newWord3 = getRandomWord();
+            writer3.write(" " + newWord3);
+            writer3.close();
+            System.out.println("Edited file: " + fileToEdit3.getPath());
 
-            // Stage the edited file
+            // Read new contents of file1.txt and file3.txt
+            String newContentFile1 = readFileContents("root/file1.txt");
+            String newContentFile3 = readFileContents("root/subdir/file3.txt");
+
+            // Stage the edited files
             newGit.stage("root/file1.txt");
+            newGit.stage("root/subdir/file3.txt");
 
             // Make a new commit after editing
-            String editCommitSha = newGit.commit("Author", "Edited file1.txt");
+            String editCommitSha = newGit.commit("Author", "Edited file1.txt and file3.txt");
             System.out.println("\nCommit SHA after editing: " + editCommitSha);
 
             // Print out the contents of the commit file after editing
@@ -96,11 +132,23 @@ public class GitTester {
             System.out.println("\nContents of tree file after editing:");
             printFileContents("git/objects/" + editTreeHash);
 
-            // Print old and new contents of file1.txt
+            // **Print contents of root/subdir tree after editing**
+            String editSubdirTreeHash = getSubdirTreeHash("git/objects/" + editTreeHash, "root/subdir");
+            if (editSubdirTreeHash != null) {
+                System.out.println("\nContents of root/subdir tree file after editing:");
+                printFileContents("git/objects/" + editSubdirTreeHash);
+            }
+
+            // Print old and new contents of file1.txt and file3.txt
             System.out.println("\nOld contents of file1.txt:");
-            System.out.println(oldContent);
+            System.out.println(oldContentFile1);
             System.out.println("\nNew contents of file1.txt:");
-            System.out.println(newContent);
+            System.out.println(newContentFile1);
+
+            System.out.println("\nOld contents of file3.txt:");
+            System.out.println(oldContentFile3);
+            System.out.println("\nNew contents of file3.txt:");
+            System.out.println(newContentFile3);
 
         } catch (Exception e) {
             System.out.println("An error occurred: " + e);
@@ -128,6 +176,26 @@ public class GitTester {
         BufferedWriter writer2 = new BufferedWriter(new FileWriter(file2));
         writer2.write(word2);
         writer2.close();
+
+        // Create subdir inside root
+        File subDir = new File("root/subdir");
+        subDir.mkdir();
+
+        // Create file3.txt inside subdir with a random word
+        File file3 = new File("root/subdir/file3.txt");
+        file3.createNewFile();
+        String word3 = getRandomWord();
+        BufferedWriter writer3 = new BufferedWriter(new FileWriter(file3));
+        writer3.write(word3);
+        writer3.close();
+
+        // Create file4.txt inside subdir with a random word
+        File file4 = new File("root/subdir/file4.txt");
+        file4.createNewFile();
+        String word4 = getRandomWord();
+        BufferedWriter writer4 = new BufferedWriter(new FileWriter(file4));
+        writer4.write(word4);
+        writer4.close();
 
         System.out.println("Created test files with random words.");
     }
@@ -182,20 +250,21 @@ public class GitTester {
         }
     }
 
-    // Method to get blob hash for a file from a tree file
-    public static String getBlobHashFromTree(String treeFilePath, String filePath) throws IOException {
-        BufferedReader reader = new BufferedReader(new FileReader(treeFilePath));
+    // Method to get the hash of root/subdir tree from root tree file
+    public static String getSubdirTreeHash(String rootTreeFilePath, String subdirPath) throws IOException {
+        BufferedReader reader = new BufferedReader(new FileReader(rootTreeFilePath));
         String line;
+        String subdirTreeHash = null;
         while ((line = reader.readLine()) != null) {
-            if (line.contains(filePath)) {
+            if (line.startsWith("tree ") && line.contains(subdirPath)) {
                 String[] parts = line.split(" ");
-                if (parts.length >= 3 && parts[0].equals("blob")) {
-                    reader.close();
-                    return parts[1]; // Return the blob hash
+                if (parts.length >= 3 && parts[2].equals(subdirPath)) {
+                    subdirTreeHash = parts[1]; // The hash is the second part
+                    break;
                 }
             }
         }
         reader.close();
-        return null;
+        return subdirTreeHash;
     }
 }
